@@ -1,15 +1,40 @@
-CC = gcc
-CFLAGS = -Wall -Wextra -O3
-SRC = native/main.c
-OBJ = build/galaxy
+TARGET_EXEC := galaxy
+BUILD_DIR := build
+SRC_DIR := native
 
-all: $(OBJ)
+CC := gcc
+CFLAGS := -O3 -g -Wall -Wextra -MMD -MP -std=c11
+LDFLAGS := -lm
 
-$(OBJ): $(SRC)
-	$(CC) $(CFLAGS) -o $(OBJ) $(SRC) -lm
+SRCS := $(wildcard $(SRC_DIR)/*.c)
+
+OBJS := $(SRCS:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+
+
+# The final executable
+$(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
+	@echo "Linking..."
+	$(CC) $(OBJS) -o $@ $(LDFLAGS)
+	@echo "Build complete: $@"
+
+# Compile source files into object files
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
+	@mkdir -p $(dir $@)
+	@echo "Compiling $<..."
+	$(CC) $(CFLAGS) -c $< -o $@
+
+
+.PHONY: all run clean
+
+all: $(BUILD_DIR)/$(TARGET_EXEC)
 
 run: all
-	./$(OBJ) > data/output.csv
+	@mkdir -p data
+	@echo "Running simulation..."
+	./$(BUILD_DIR)/$(TARGET_EXEC) > data/output.csv
 
 clean:
-	rm -f build/* data/*.csv
+	@echo "Cleaning up..."
+	rm -rf $(BUILD_DIR) data/*.csv
+
+-include $(OBJS:.o=.d)
