@@ -1,51 +1,82 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "physics.h"
 
-#define BODY_COUNT 2
 #define TIME_STEP 86400.0
 #define STEPS 365
 
-void init_system(Body bodies[]) {
-  // 1. The Sun (Static center)
-  bodies[0].mass = 1.989e30;
-  bodies[0].position.x = 0;
-  bodies[0].position.y = 0;
-  bodies[0].velocity.x = 0;
-  bodies[0].velocity.y = 0;
-  bodies[0].force.x = 0;
-  bodies[0].force.y = 0;
-
-  // 2. The Earth (Orbiting)
-  bodies[1].mass = 5.972e24;
-  bodies[1].position.x = 1.496e11; // 1 AU (Distance from Sun)
-  bodies[1].position.y = 0;
-  bodies[1].velocity.x = 0;
-  bodies[1].velocity.y = 29780; // ~30km/s orbital speed
-  bodies[1].force.x = 0;
-  bodies[1].force.y = 0;
+real random_real(real min, real max) {
+  return min + (rand() / (real)RAND_MAX) * (max - min);
 }
 
-int main(int argc, char *argv[]) {
-  Body bodies[BODY_COUNT];
-  init_system(bodies);
+void init_system(Body bodies[], int count) {
+  // seed
+  srand(42);
 
-  // printf("Starting simulation for %d bodies over %d steps...\n", BODY_COUNT,
-  // STEPS);
+  for (int i = 0; i < count; i++) {
+    if (i == 0) {
+      bodies[i].mass = 1e32; // Supermassive black hole / Sun
+      bodies[i].position.x = 0;
+      bodies[i].position.y = 0;
+      bodies[i].velocity.x = 0;
+      bodies[i].velocity.y = 0;
+    } else {
+      bodies[i].mass = random_real(1e20, 1e25); // Smaller stars
+
+      // Position: Random spread in a 5 AU box
+      // 1 AU = ~1.5e11 meters
+      real spread = 1.5e11 * 5.0;
+      bodies[i].position.x = random_real(-spread, spread);
+      bodies[i].position.y = random_real(-spread, spread);
+
+      // Velocity: Give them a kick so they orbit instead of falling straight in
+      // (Simulating a rotating galaxy disc roughly)
+      real dist = sqrt(bodies[i].position.x * bodies[i].position.x +
+                       bodies[i].position.y * bodies[i].position.y);
+
+      // Orbital velocity, v = sqrt(GM/r) roughly
+      real orbital_speed = sqrt(6.6743e-11 * 1e32 / dist);
+
+      // Tangent direction (simplified circular orbit logic)
+      // If pos is (x, y), tangent is (-y, x)
+      bodies[i].velocity.x = (-bodies[i].position.y / dist) * orbital_speed;
+      bodies[i].velocity.y = (bodies[i].position.x / dist) * orbital_speed;
+    }
+
+    bodies[i].force.x = 0;
+    bodies[i].force.y = 0;
+  }
+}
+int main(int argc, char *argv[]) {
+  int body_count = 100; // default
+
+  if (argv[1] != NULL) {
+    body_count = atoi(argv[1]);
+  }
+
+  Body *bodies = malloc(body_count * sizeof(Body));
+  if (bodies == NULL) {
+    fprintf(stderr, "Error: Failed to allocate memory. Too many bodies?\n");
+    return 1;
+  }
+
+  init_system(bodies, body_count);
+
   printf("Step,BodyID,X,Y\n");
 
   for (int step = 0; step < STEPS; step++) {
 
     // reset forces
-    for (int i = 0; i < BODY_COUNT; i++) {
+    for (int i = 0; i < body_count; i++) {
       bodies[i].force.x = 0;
       bodies[i].force.y = 0;
     }
 
-    for (int i = 0; i < BODY_COUNT; i++) {
+    for (int i = 0; i < body_count; i++) {
 
-      for (int j = i + 1; j < BODY_COUNT; j++) {
+      for (int j = i + 1; j < body_count; j++) {
         Vector f = calculate_force(&bodies[i], &bodies[j]);
 
         // Apply to Body i
@@ -58,17 +89,18 @@ int main(int argc, char *argv[]) {
       }
     }
 
-    for (int i = 0; i < BODY_COUNT; i++) {
+    for (int i = 0; i < body_count; i++) {
       update_vectors(&bodies[i], TIME_STEP);
     }
 
     if (step % 1 == 0) { // Log every step
-      printf("%d,0,%.2f,%.2f\n", step, bodies[0].position.x,
-             bodies[0].position.y);
-      printf("%d,1,%.2f,%.2f\n", step, bodies[1].position.x,
-             bodies[1].position.y);
+      for (int i = 0; i < body_count; i++) {
+        printf("%d,%d,%.2f,%.2f\n", step, i, bodies[i].position.x,
+               bodies[i].position.y);
+      }
     }
   }
 
+  free(bodies);
   return EXIT_SUCCESS;
 }
