@@ -3,6 +3,7 @@
 #include "physics.h"
 
 #include <fcntl.h>
+#include <omp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
@@ -51,11 +52,12 @@ int main(int argc, char *argv[]) {
   for (int step = 0; step < steps; step++) {
 
     // reset forces
+#pragma omp parallel for
     for (int i = 0; i < body_count; i++) {
       bodies[i].force.x = 0;
       bodies[i].force.y = 0;
     }
-
+#pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < body_count; i++) {
 
       for (int j = i + 1; j < body_count; j++) {
@@ -70,7 +72,7 @@ int main(int argc, char *argv[]) {
         bodies[j].force.y -= f.y;
       }
     }
-
+#pragma omp parallel for
     for (int i = 0; i < body_count; i++) {
       update_vectors(&bodies[i], TIME_STEP);
     }

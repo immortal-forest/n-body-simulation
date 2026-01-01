@@ -1,3 +1,4 @@
+#include <omp.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -33,27 +34,28 @@ int main(int argc, char *argv[]) {
 
   for (int step = 0; step < steps; step++) {
 
-    // reset forces
+// reset forces
+#pragma omp parallel for
     for (int i = 0; i < body_count; i++) {
       bodies[i].force.x = 0;
       bodies[i].force.y = 0;
     }
 
+#pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < body_count; i++) {
 
       for (int j = i + 1; j < body_count; j++) {
+        if (i == j)
+          continue;
+
         Vector f = calculate_force(&bodies[i], &bodies[j]);
 
-        // Apply to Body i
         bodies[i].force.x += f.x;
         bodies[i].force.y += f.y;
-
-        // Newton's 3rd Law: The force on j is equal and opposite
-        bodies[j].force.x -= f.x;
-        bodies[j].force.y -= f.y;
       }
     }
 
+#pragma omp parallel for
     for (int i = 0; i < body_count; i++) {
       update_vectors(&bodies[i], TIME_STEP);
     }
