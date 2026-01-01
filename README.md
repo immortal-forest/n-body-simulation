@@ -52,13 +52,13 @@ ______________________________________________________________________
 
 ## Shared Memory (IPC)
 
-In this mode, the C program runs independently in its own process. It writes positions to a reserved block of RAM (`/dev/shm/galaxy_sim`). The Python script merely attaches to that memory to draw.
+In this mode, the C program runs independently in its own process. It writes positions to a reserved block of RAM (`/dev/shm/shared_galaxy`). The Python script merely attaches to that memory to draw.
 
 **1. Start the Physics Engine (Terminal 1)**
 
 ```bash
-# Usage: ./build/galaxy [num_bodies] [num_steps]
-./build/galaxy 2000 50000
+# Usage: ./build/shared_galaxy [num_bodies] [num_steps]
+./build/shared_galaxy 2000 50000
 
 ```
 
