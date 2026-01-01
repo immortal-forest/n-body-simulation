@@ -12,7 +12,7 @@ run: native/main.c native/galaxy.c native/physics.c
 # shared memory executable
 shared_mem: native/shared.c native/galaxy.c native/physics.c
 	mkdir -p build
-	$(CC) $(CFLAGS) $(OMP_FLAGS) -o build/shared_mem native/shared.c native/galaxy.c native/physics.c $(LIBS) -lrt
+	$(CC) $(CFLAGS) $(OMP_FLAGS) -o build/shared_galaxy native/shared.c native/galaxy.c native/physics.c $(LIBS) -lrt
 	
 # shared library
 library: native/library.c native/galaxy.c native/physics.c
