@@ -24,7 +24,7 @@ __global__ void compute_forces(Body *bodies, int n, double G) {
     Body other = bodies[j];
     double dx = other.position.x - my_body.position.x;
     double dy = other.position.y - my_body.position.y;
-    double dist = sqrt(dx * dx + dy * dy + 1e-2); // Softening
+    double dist = sqrt(dx * dx + dy * dy + 1e9); // Softening
     double f = (G * my_body.mass * other.mass) / (dist * dist * dist);
 
     fx += f * dx;
@@ -53,13 +53,44 @@ __global__ void update_physics(Body *bodies, int n, double dt) {
   bodies[i].force.y = 0;
 }
 
+double rand_01() { return (double)rand() / (double)RAND_MAX; }
+
 void init_random(Body *bodies, int n) {
+  srand(42);
+
+  // Scale factors
+  double galaxy_radius = 4.0e11; // ~2.5 AU
+  double core_mass = 1e32;       // Supermassive center
+
   for (int i = 0; i < n; i++) {
-    bodies[i].mass = (i == 0) ? 1e32 : 1e24;
-    bodies[i].position.x = (i == 0) ? 0 : (rand() % 1000 - 500) * 1e9;
-    bodies[i].position.y = (i == 0) ? 0 : (rand() % 1000 - 500) * 1e9;
-    bodies[i].velocity.x = 0;
-    bodies[i].velocity.y = 0;
+    // Body 0 is the Black Hole
+    if (i == 0) {
+      bodies[i].mass = core_mass;
+      bodies[i].position.x = 0;
+      bodies[i].position.y = 0;
+      bodies[i].velocity.x = 0;
+      bodies[i].velocity.y = 0;
+      bodies[i].force.x = 0;
+      bodies[i].force.y = 0;
+      continue;
+    }
+
+    double angle = rand_01() * 2.0 * 3.14159;
+    double dist = galaxy_radius *
+                  (0.2 + 0.8 * rand_01()); // Avoid being TOO close to center
+
+    bodies[i].position.x = dist * cos(angle);
+    bodies[i].position.y = dist * sin(angle);
+    bodies[i].mass = 1e24 + (rand_01() * 1e24); // Random small mass
+
+    double velocity = sqrt(6.6743e-11 * core_mass / dist);
+
+    bodies[i].velocity.x = -sin(angle) * velocity;
+    bodies[i].velocity.y = cos(angle) * velocity;
+
+    // Reset forces
+    bodies[i].force.x = 0;
+    bodies[i].force.y = 0;
   }
 }
 
