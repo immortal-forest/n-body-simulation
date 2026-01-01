@@ -1,4 +1,5 @@
 #include "types.h"
+#include <cstdio>
 #include <cuda_runtime.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,7 +67,8 @@ int main(int argc, char *argv[]) {
   int n = (argc > 1) ? atoi(argv[1]) : 1000;
   int steps = (argc > 2) ? atoi(argv[2]) : 100;
 
-  printf("GPU CUDA: Running %d bodies for %d steps...\n", n, steps);
+  // printf("GPU CUDA: Running %d bodies for %d steps...\n", n, steps);
+  printf("Step,BodyID,X,Y\n");
 
   size_t size = n * sizeof(Body);
   Body *h_bodies = (Body *)malloc(size);
@@ -85,11 +87,16 @@ int main(int argc, char *argv[]) {
 
     update_physics<<<blocks, BLOCK_SIZE>>>(d_bodies, n, 86400.0);
     cudaDeviceSynchronize(); // Wait for update to finish
+    if (s % 1 == 0) {
+      cudaMemcpy(h_bodies, d_bodies, size, cudaMemcpyDeviceToHost);
+
+      for (int i = 0; i < n; i++) {
+        printf("%d,%d,%.2f,%.2f\n", s, i, h_bodies[i].position.x,
+               h_bodies[i].position.y);
+      }
+    }
   }
 
-  // cudaMemcpy(h_bodies, d_bodies, size, cudaMemcpyDeviceToHost);
-
-  printf("GPU Done.\n");
   cudaFree(d_bodies);
   free(h_bodies);
   return 0;
