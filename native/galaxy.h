@@ -6,7 +6,7 @@
 
 #include "types.h"
 
-static real random_real(real, real);
+real random_real(real, real);
 void init_galaxy(Body *, int);
 
 #endif // !GALAXY_H

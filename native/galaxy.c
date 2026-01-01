@@ -2,7 +2,7 @@
 #include <math.h>
 #include <stdlib.h>
 
-static real random_real(real min, real max) {
+real random_real(real min, real max) {
   return min + (rand() / (real)RAND_MAX) * (max - min);
 }
 
