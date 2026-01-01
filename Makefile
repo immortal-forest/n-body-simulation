@@ -1,40 +1,23 @@
-TARGET_EXEC := galaxy
-BUILD_DIR := build
-SRC_DIR := native
+# Compiler Settings
+CC = gcc
+CFLAGS = -O3 -Wall -std=c11
+OMP_FLAGS = -fopenmp
+LIBS = -lm
 
-CC := gcc
-CFLAGS := -O3 -g -Wall -Wextra -MMD -MP -std=c11
-LDFLAGS := -lm
-
-SRCS := $(wildcard $(SRC_DIR)/*.c)
-
-OBJS := $(SRCS:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+run: native/main.c native/galaxy.c native/physics.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $(OMP_FLAGS) -o build/galaxy native/main.c native/galaxy.c native/physics.c $(LIBS)
 
 
-# The final executable
-$(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
-	@echo "Linking..."
-	$(CC) $(OBJS) -o $@ $(LDFLAGS)
-	@echo "Build complete: $@"
-
-# Compile source files into object files
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-	@mkdir -p $(dir $@)
-	@echo "Compiling $<..."
-	$(CC) $(CFLAGS) -c $< -o $@
-
-
-.PHONY: all run clean
-
-all: $(BUILD_DIR)/$(TARGET_EXEC)
-
-run: all
-	@mkdir -p data
-	@echo "Running simulation..."
-	./$(BUILD_DIR)/$(TARGET_EXEC) > data/output.csv
+# shared memory executable
+shared_mem: native/shared.c native/galaxy.c native/physics.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $(OMP_FLAGS) -o build/shared_mem native/shared.c native/galaxy.c native/physics.c $(LIBS) -lrt
+	
+# shared library
+library: native/library.c native/galaxy.c native/physics.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $(OMP_FLAGS) -fPIC -shared -o build/libgalaxy.so native/library.c native/galaxy.c native/physics.c $(LIBS)
 
 clean:
-	@echo "Cleaning up..."
-	rm -rf $(BUILD_DIR) data/*.csv
-
--include $(OBJS:.o=.d)
+	rm -rf build
