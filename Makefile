@@ -1,40 +1,30 @@
-TARGET_EXEC := galaxy
-BUILD_DIR := build
-SRC_DIR := native
+# Compiler Settings
+CC = gcc
+NVCC = nvcc
+CFLAGS = -O3 -Wall -std=c11 -lm
+OMP_FLAGS = -fopenmp
 
-CC := gcc
-CFLAGS := -O3 -g -Wall -Wextra -MMD -MP -std=c11
-LDFLAGS := -lm
+# Targets
+all: serial parallel cuda
 
-SRCS := $(wildcard $(SRC_DIR)/*.c)
+# 1. Serial (Normal C)
+# We compile main.c but WITHOUT the -fopenmp flag. 
+# The #pragma lines will be ignored.
+serial: native/main.c native/physics.c
+	mkdir -p build
+	$(CC) $(CFLAGS) -o build/serial native/main.c native/physics.c
 
-OBJS := $(SRCS:$(SRC_DIR)/%.c=$(BUILD_DIR)/%.o)
+# 2. Parallel (OpenMP)
+# We compile main.c WITH the -fopenmp flag.
+parallel: native/mainp.c native/physics.c
+	mkdir -p build
+	$(CC) $(CFLAGS) $(OMP_FLAGS) -o build/parallel native/main.c native/physics.c
 
-
-# The final executable
-$(BUILD_DIR)/$(TARGET_EXEC): $(OBJS)
-	@echo "Linking..."
-	$(CC) $(OBJS) -o $@ $(LDFLAGS)
-	@echo "Build complete: $@"
-
-# Compile source files into object files
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-	@mkdir -p $(dir $@)
-	@echo "Compiling $<..."
-	$(CC) $(CFLAGS) -c $< -o $@
-
-
-.PHONY: all run clean
-
-all: $(BUILD_DIR)/$(TARGET_EXEC)
-
-run: all
-	@mkdir -p data
-	@echo "Running simulation..."
-	./$(BUILD_DIR)/$(TARGET_EXEC) > data/output.csv
+# 3. CUDA (GPU)
+# We use nvcc to compile the .cu file
+cuda: native/main.cu
+	mkdir -p build
+	$(NVCC) -O3 -o build/cuda native/main.cu
 
 clean:
-	@echo "Cleaning up..."
-	rm -rf $(BUILD_DIR) data/*.csv
-
--include $(OBJS:.o=.d)
+	rm -rf build data
