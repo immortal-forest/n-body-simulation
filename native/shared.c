@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
+#include <threads.h>
+#include <time.h>
 #include <unistd.h>
 
 SharedData *create_shared_mem() {
@@ -89,7 +91,11 @@ int main(int argc, char *argv[]) {
       }
     }
     mem->step = step;
-    usleep(1000);
+    struct timespec ts;
+    ts.tv_sec = 0;
+    ts.tv_nsec = 1000 * 1000; // 1 ms in nanoseconds
+
+    thrd_sleep(&ts, NULL);
   }
 
   munmap(mem, sizeof(SharedData));
